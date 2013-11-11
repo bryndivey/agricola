@@ -1,0 +1,7 @@
+(def :bla)
+(def a :agricola.resources/wheat)
+a
+(use 'agricola.actions)
+(doc alter)
+(use 'agricola.actions)
+(doc update-in)

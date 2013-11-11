@@ -1,0 +1,458 @@
+(ns agricola-service.game)
+
+player board:
+-------------
+
+3 x 5
+
+0  1  2  3  4
+5  6  7  8  9
+10 11 12 13 14
+
+5 and 10 are starting huts
+
+each square can contain:
+
+1 hut
+  wood
+  clay
+  stone
+
+1 stable
+
+n/s/e/w fences
+
+1 - 4 animals
+  sheep
+  cattle
+  boar
+
+field
+  contains:
+    1 - 3 grain
+    1 - 2 vegetable
+
+
+major improvements
+------------------
+
+cooking hearth:
+  cost:
+    4 x clay OR return fireplace
+  points: 1
+  any time:
+    1 veg -> 3 x food
+    1 sheep -> 2 x food
+    1 boar -> 3 x food
+    1 cattle -> 4 x food
+  bake bread:
+    1 grain -> 3 x food
+
+cooking hearth:
+  cost:
+    5 x clay OR return fireplace
+  points: 1
+  any time:
+    1 veg -> 3 x food
+    1 sheep -> 2 x food
+    1 boar -> 3 x food
+    1 cattle -> 4 x food
+  bake bread:
+    1 grain -> 3 x food
+
+stone oven:
+  cost: 1 x clay and 3 x stone
+  points: 3
+  bake bread:
+    1 grain -> 4 food
+    limit: 2 grain
+  immediate:
+    bake bread
+
+fireplace:
+  cost: 2 x clay
+  points: 1
+  any time:
+    1 veg -> 2 x food
+    1 sheep -> 2 x food
+    1 boar -> 2 x food
+    1 cattle -> 3 x food
+  bake bread:
+    1 grain -> 2 food
+
+fireplace:
+  cost: 3 x clay
+  points: 1
+  any time:
+    1 veg -> 2 x food
+    1 sheep -> 2 x food
+    1 boar -> 2 x food
+    1 cattle -> 3 x food
+  bake bread:
+    1 grain -> 2 food
+
+joinery:
+  cost: 2 x wood and 2 x stone
+  points: 2
+  harvest:
+    1 wood -> 2 food
+    limit: 1 wood
+  bonus: 1/2/3 for 3/5/7 wood
+
+clay oven:
+  cost: 3 x clay and 1 x stone
+  points: 2
+  bake bread:
+    1 grain -> 5 food
+    limit: 1 grain
+  immediate:
+    bake bread
+
+pottery:
+  cost: 2 x clay and 2 x stone
+  points: 2
+  harvest:
+    1 clay -> 2 food
+    limit: 1 clay
+  bonus: 1/2/3 for 3/5/7 wood
+
+basketmaker's workshop:
+  cost: 2 x reed and 2 x stone
+  points: 2
+  harvest:
+    1 reed -> 3 food
+    limit: 1 reed
+  bonus: 1/2/3 for 2/4/5 reed
+
+ well:
+   cost: 1 x wood and 3 x stone
+   points: 4
+   food-per-turn:
+     turns: 5
+     food: 1
+     
+
+    
+main board
+----------
+
+actions
+-------
+
+build rooms:
+  players: *
+  stage: init
+  wood hut: 5 * w + 2 * r
+  clay hut: 5 * c + 2 * r
+  stone hut: 5 * s + 2 * r
+  restictions: must have huts of that kind
+
+  and / or
+
+  stables: 2 w per stable
+
+starting player:
+  players: *
+  stage: init
+  starting player
+  1 x food
+
+take grain:
+  players: *
+  stage: init
+  1 x grain
+
+plow field:
+  players: *
+  stage: init
+  1 x field
+
+build stable:
+  players: *
+  stage: init
+  1 stable: 1 w
+  and / or
+  bake bread
+
+day laborer:
+  players: *
+  stage: init
+  1 f
+  1 resource
+
+3 wood:
+  players: *
+  stage: init
+  3 w
+  accumulates
+
+1 clay:
+  players: *
+  stage: init
+  1 c
+  accumulates
+
+1 reed:
+  players: *
+  stage: init
+  1 r
+  accumulates
+
+fishing:
+  players: *
+  stage: init
+  1 f
+  accumulates
+
+2 wood:
+  players: 3
+  stage: init
+  2 w
+  accumulates
+
+1 clay:
+  players: 3
+  stage: init
+  1 c
+  accumulates
+
+2 resources:
+  players: 3
+  stage: init
+  2 x r
+  restrictions: different
+
+1 resource:
+  players: 3
+  stage: init
+  1 x r
+
+fences:
+  players: *
+  stage: 1
+  1 w -> 1 fence
+
+sow:
+  players: *
+  stage: 1
+  sow
+  and / or
+  bake bread
+
+improvement:
+  players: *
+  stage: 1
+  improvement
+
+sheep:
+  players: *
+  stage: 1
+  1 x sheep
+  accumulates
+
+family growth:
+  players: *
+  stage: 2
+  family growth
+
+stone:
+  players: *
+  stage: 2
+  1 x stone
+  accumulates
+
+renovation:
+  players: *
+  stage: 2
+  predicate: wood huts
+  req: 1 x thatch + 2 x clay per hut
+  result: clay huts
+  
+  predicate: clay huts
+  req: 1 x thatch + 2 x stone per hut
+  result: stone huts
+
+  ALSO:
+
+  improvement
+
+boar:
+  players: *
+  stage: 3
+  1 x boar
+  accumulates
+
+take vegetable:
+  players: *
+  stage: 3
+  1 x vegetable
+
+cattle:
+  players: *
+  stage: 4
+  1 x cattle
+  accumulates
+
+stone:
+  players: *
+  stage: 4
+  1 x stone
+  accumulates
+
+plow and sow:
+  players: *
+  stage: 5
+  plow: 1 field
+  and or
+  sow
+
+family growth 2:
+  players: *
+  stage: 5
+  family growth
+  predicate: none
+
+renovation 2:
+  players: *
+  stage: 6
+  predicate: wood huts
+  req: 1 x thatch + 1 x clay per hut
+  result: clay huts
+  
+  predicate: clay huts
+  req: 1 x thatch + 1 x stone per hut
+  result: stone huts
+
+  ALSO:
+
+  fences
+
+
+
+
+BOARD
+-----
+
+
+14 x initial
+4 x stage 1
+3 x stage 2
+2 x stage 3
+2 x stage 4
+2 x stage 5
+1 x stage 6
+  
+
+action types
+------------
+
+sinks
+-----
+resource
+number
+total
+
+resource acquisition
+----------------
+resource
+number
+
+actions
+-------
+
+plow:
+  number
+
+sow:
+  n/a
+
+renovate:
+  decider
+  costs (uses number of rooms)
+
+improvement:
+  n/a
+
+family growth with room:
+  n/a
+
+bake bread:
+  references cards
+
+fences:
+  costs
+
+family growth without room:
+  n/a
+
+build:
+  decider
+  costs
+
+build stable:
+  costs
+  limits
+
+starting player:
+  n/a
+
+composites:
+
+action AND/OR action
+action AND action
+
+
+spaces:
+  played
+  action
+
+
+player model:
+
+family members
+resources:
+  wood
+  clay
+  reed
+  stone
+  food
+board:
+  huts:
+    type
+  fences
+  stables
+  sheep
+  cattle
+  boar
+
+board model:
+  round
+  actions:
+    action
+    played
+      
+      
+  
+  
+
+
+
+
+
+
+
+
+
+
+ 
+  
+
+
+
+
+
+
+
+
+
+
