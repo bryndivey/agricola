@@ -7,8 +7,9 @@
    :field nil
    :animal {:type nil :number nil}})
 
-(defn create-player []
-  {:resources {:food 0
+(defn create-player [name]
+  {:name name
+   :resources {:food 0
                :wood 0
                :clay 0
                :reed 0
@@ -19,9 +20,9 @@
              :cattle 0
              :boar 0}
    :board (vec (repeat 15 (create-space)))
+   :moves []
    :improvements []
-   :starting-player false
-   :arguments {}})
+   :starting-player false})
 
 (defn add-hut [player space type]
   (assoc-in player [:board space :hut] type))
@@ -35,14 +36,14 @@
   {:stage 0
    :slots []
    :improvements []
-   :players []
+   :players {}
 
    :move nil})
 
 (defn create-game []
-  (update-in (create-game-state) [:players] 
-             conj (-> (create-player)
-                      (assoc :starting-player true)
-                      (add-hut 0 :wood)
-                      (add-hut 1 :wood))))
+  (assoc-in (create-game-state) [:players :bryn] 
+             (-> (create-player "Bryn")
+                 (assoc :starting-player true)
+                 (add-hut 0 :wood)
+                 (add-hut 1 :wood))))
 

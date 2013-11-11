@@ -6,12 +6,7 @@
 (defn- get-count [action game]
   (:count (first (filter #(= (:action %) action) (:slots game)))))
 
-(defn- update-action [game action new]
-  (assoc game :slots
-         (for [a (:slots game)]
-           (if (= a action)
-             new
-             a))))
+
 
 (defn- update-player [game player new]
   (assoc game :players
@@ -20,38 +15,39 @@
              new
              p))))
 
-(defn- g-m [game] (:move game))
-(defn- g-a [game] (-> game g-m :action))
-(defn- g-p [game] (-> game g-m :player))
+(defn- g-a [game move] (nth (:slots game) (:slot move)))
+(defn- g-p [game move] ((:players game) (:player move)))
 
 
-
-(defn possible-move? [game]
-  (let [action (g-a game)]
+(defn possible-move? [game move]
+  (let [action (g-a game move)
+        ]
     (and 
      (not (:performed action))
      (or (not (:possible-fn action))
-         ((:possible-fn action) game)))))
+         ((:possible-fn action) game move)))))
 
-(defn perform-move [game]
-  (assert (:perform-fn (g-a game)) "No perform action!")
-  (let [action (g-a game)
-        player (g-p game)
-        [n-a n-p] ((:perform-fn action) game action player)
+(defn perform-move [game move]
+  (assert (:perform-fn (g-a game move)) "No perform action!")
+  
+  (let [action (g-a game move)
+        player (g-p game move)
+        [n-a n-p] ((:perform-fn action) game action player (dissoc move :player :slot))
         n-a (assoc n-a :performed true)]
     (-> game
-        (update-action action n-a)
-        (update-player player n-p))))
+        (assoc-in [:slots (:slot move)] n-a)
+        (assoc-in [:players (:player move)] n-p))))
 
-(defn- perform-action-tick [game action]
-  (if-let [tick-fn (:tick-fn action)]
-    (do
-      (log/info "Performing tick of " action)
-      (update-action game action (assoc (tick-fn game action) :performed false)))
-    game))
+(defn- perform-action-tick [game a-num]
+  (let [action (nth (:slots game) a-num)]
+    (if-let [tick-fn (:tick-fn action)]
+      (do
+        (log/info "Performing tick of " action)
+        (assoc-in game [:slots a-num] (assoc (tick-fn game action) :performed false)))
+      game)))
 
 (defn perform-tick [game]
-  (reduce #(perform-action-tick %1 %2) game (:slots game)))
+  (reduce #(perform-action-tick %1 %2) game (range (count (:slots game)))))
 
 (defn a-resource-sink [name resource number]
   {:name name
@@ -79,30 +75,35 @@
    :supply number
    :tick-fn (fn [game action]
               (update-in action [:supply] + (:number action)))
-   :perform-fn (fn [game action player]
+   :perform-fn (fn [game action player args]
                  (let [p (update-in player [:resources resource] + (:supply action))
                        a (assoc action :supply 0)]
                    [a p]))
    })
 
+(defn a-plow [name]
+  {:name name
+   :performed false
+   :type "plow"
+   
+   :perform-fn (fn [game action player args]
+                 ;; todo VALIDATE
+                 [action (assoc-in player [:board (:target args) :field] true)])})
 
-(defn set-move
-  ([game player action]
-     (set-move game player action {}))
-  ([game player action args]
-     (assoc game :move (merge args {:player player
-                                    :action action}))))
 
 (defn test-basic []
   (let [wood-3 (a-resource-sink "Three Wood" :wood 3)
-
+        plow (a-plow "Plow")
         game (update-in (create/create-game) [:slots] conj wood-3)
-        p1 (first (:players game))
-        action (first (:slots game))]
-    (let [n-g (perform-move (set-move game p1 action))]
-      (assert (= 0 (-> n-g :slots first :supply)))
-      (assert (= 3 (-> n-g :players first :resources :wood)))
-      n-g)))
+        game (update-in game [:slots] conj plow)]
+    
+    (let [g (perform-move game {:player :bryn :slot 0})
+          g1 (perform-move g {:player :bryn :slot 1 :target 2})]
+      (assert (= 0 (-> g1 :slots first :supply)))
+      (assert (= 3 (-> g1 :players :bryn :resources :wood)))
+      (assert (= true (-> g1 :slots second :performed)))
+      (assert (= true (-> g1 :players :bryn :board (nth 2) :field)))
+      g1)))
 
 
 (defn print-actions [game])
