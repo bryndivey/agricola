@@ -3,7 +3,8 @@
               [io.pedestal.app :as app]
               [io.pedestal.app.dataflow :as d]
               [io.pedestal.app.messages :as msg]
-              [io.pedestal.app.util.log :as log]))
+              [io.pedestal.app.util.log :as log]
+              [io.pedestal.app.util.platform :as platform]))
 
 ;; TRANSFORMS
 
@@ -11,7 +12,7 @@
   (:value message))
 
 (defn move-transform [t message]
-  (select-keys message [:player :slot :targets]))
+  (assoc (select-keys message [:player :slot :targets]) :nub (rand)))
 
 (defn inc-transform [old _]
   ((fnil inc 1) old))
@@ -28,7 +29,7 @@
     :do-tick [{msg/type :inc msg/topic [:tick]}]]
    
    [:transform-enable [:main :move]
-    :perform-move [{msg/topic [:requested-move]
+    :perform-move [{msg/topic [:move]
                     (msg/param :player) {:read-as :data}
                     (msg/param :slot) {:read-as :data}
                     (msg/param :targets) {:read-as :data}}]]])
@@ -54,16 +55,16 @@
   {:version 2
    
    :transform [[:swap [:**] swap-transform]
-               [:perform-move [:requested-move] move-transform]
+               [:perform-move [:move] move-transform]
                [:inc [:tick] inc-transform]]
 
-   :effect #{{:in #{[:requested-move]} :fn send-move}
+   :effect #{{:in #{[:move]} :fn send-move}
              {:in #{[:tick]} :fn send-tick}}
    
    :continue #{[#{}]}
 
    :emit [{:init init-game}
-          [#{[:requested-move]
+          [#{[:move]
              [:error]
              [:tick]
              
