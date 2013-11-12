@@ -1,5 +1,5 @@
 (ns agricola.actions
-  (require [agricola.create :as create]
+  (require [agricola.game]
            [clojure.tools.logging :as log])
   (use [clojure.test]))
 
@@ -35,7 +35,7 @@
 
 (defn perform-move [game move]
   (assert (:perform-fn (g-a game move)) "No perform action!")
-  
+  (assert (valid-move? game move))
   (let [action (g-a game move)
         player (g-p game move)
         [n-a n-p] ((:perform-fn action) game action player (dissoc move :player :slot))
@@ -94,12 +94,7 @@
                    [a p]))
    })
 
-(defn empty-space? [space]
-  (and
-   (not (:hut space))
-   (empty? (filter identity (vals (:fences space))))
-   (not (:stable space))
-   (not (:field space))))
+
 
 (defn v-num-targets [min max]
   (fn [_ _ player args]
@@ -108,7 +103,7 @@
          (<= (count (:targets args)) max))))
 
 (defn v-empty-targets [_ _ player args]
-  (every? true? (map #(empty-space? (get-in player [:board %])) (:targets args))))
+  (every? true? (map #(agricola.game/empty-space? (get-in player [:board %])) (:targets args))))
 
 (defn a-plow [name]
   {:name name
@@ -127,6 +122,9 @@
   {:name name
    :performed false
    :type "build-rooms"
+
+   :validate-fns [(v-num-targets 1 15)
+                  v-empty-targets]
    })
 
 
@@ -136,7 +134,7 @@
 (defn setup-game-for-test []
   (let [wood-3 (a-resource-sink "Three Wood" :wood 3)
         plow (a-plow "Plow")
-        game (update-in (create/create-game) [:slots] conj wood-3)
+        game (update-in (agricola.game/create-game) [:slots] conj wood-3)
         game (update-in game [:slots] conj plow)]
     game))
 
@@ -180,7 +178,7 @@
 (defn test-basic []
   (let [wood-3 (a-resource-sink "Three Wood" :wood 3)
         plow (a-plow "Plow")
-        game (update-in (create/create-game) [:slots] conj wood-3)
+        game (update-in (agricola.game/create-game) [:slots] conj wood-3)
         game (update-in game [:slots] conj plow)]
     
     (let [m1 {:player :bryn :slot 0}
@@ -198,5 +196,3 @@
       (assert (= true (-> g1 :players :bryn :board (nth 2) :field)))
       g1)))
 
-
-(defn print-actions [game])
