@@ -5,33 +5,14 @@
             [io.pedestal.app.render :as render]
             [io.pedestal.app.messages :as msg]
             [agricola-client.behavior :as behavior]
-            [agricola-client.rendering :as rendering]))
+            [agricola-client.rendering :as rendering]
+            [agricola-client.create :as create]))
 
 ;; In this namespace, the application is built and started.
 
 (defn create-app [render-config]
-  (let [;; Build the application described in the map
-        ;; 'behavior/example-app'. The application is a record which
-        ;; implements the Receiver protocol.
-        app (app/build behavior/example-app)
-        ;; Create the render function that will be used by this
-        ;; application. A renderer function takes two arguments: the
-        ;; application model deltas and the input queue.
-        ;;
-        ;; On the line below, we create a renderer that will help in
-        ;; mapping UI data to the DOM. 
-        ;;
-        ;; The file, app/src/agricola_client/rendering.cljs contains
-        ;; the code which does all of the rendering as well as the
-        ;; render-config which is used to map rendering data to
-        ;; specific functions.
+  (let [app (app/build behavior/example-app)
         render-fn (push-render/renderer "content" render-config render/log-fn)
-        ;; This application does not yet have services, but if it did,
-        ;; this would be a good place to create it.
-        ;; services-fn (fn [message input-queue] ...)
-
-        ;; Configure the application to send all rendering data to this
-        ;; renderer.
         app-model (render/consume-app-model app render-fn)]
     ;; If services existed, configure the application to send all
     ;; effects there.
@@ -40,7 +21,8 @@
     ;; Start the application
     (app/begin app)
     ;; Send a message to the application so that it does something.
-    (p/put-message (:input app) {msg/type :set-value msg/topic [:greeting] :value "Hello World!"})
+    (p/put-message (:input app)
+                   {msg/type :swap msg/topic [:game] :value (create/create)})
     ;; Returning the app and app-model from the main function allows
     ;; the tooling to add support for useful features like logging
     ;; and recording.

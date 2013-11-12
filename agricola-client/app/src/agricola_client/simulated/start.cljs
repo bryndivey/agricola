@@ -1,6 +1,8 @@
 (ns agricola-client.simulated.start
-  (:require [io.pedestal.app.render.push.handlers.automatic :as d]
+  (:require [io.pedestal.app :as app]
+            [io.pedestal.app.render.push.handlers.automatic :as d]
             [agricola-client.start :as start]
+            [agricola-client.simulated.services :as services]
             [agricola-client.rendering :as rendering]
             [goog.Uri]
             ;; This needs to be included somewhere in order for the
@@ -17,6 +19,7 @@
   ;;
   ;; config/config.edn
   ;;
-  (start/create-app (if (= "auto" (param "renderer"))
-                      d/data-renderer-config
-                      (rendering/render-config))))
+  (let [app (start/create-app (if (= "auto" (param "renderer"))
+                                d/data-renderer-config
+                                (rendering/render-config)))]
+    (app/consume-effects (:app app) services/services-fn)))

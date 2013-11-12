@@ -1,76 +1,61 @@
 (ns ^:shared agricola-client.behavior
     (:require [clojure.string :as string]
-              [io.pedestal.app.messages :as msg]))
-;; While creating new behavior, write tests to confirm that it is
-;; correct. For examples of various kinds of tests, see
-;; test/agricola_client/behavior-test.clj.
+              [io.pedestal.app :as app]
+              [io.pedestal.app.messages :as msg]
+              [io.pedestal.app.util.log :as log]))
 
-(defn set-value-transform [old-value message]
+;; TRANSFORMS
+
+(defn swap-transform [_ message]
   (:value message))
 
+(defn move-transform [t message]
+  (select-keys message [:player :slot]))
+
+(defn inc-transform [_ message]
+  ((fnil inc 1) (:value message)))
+
+
+;; INITIALIZERS
+
+(defn init-game [_]
+  [[:node-create [:move] :map]
+   [:transform-enable [:tick]
+    :tick [{msg/topic [:request-tick]}]] 
+   [:transform-enable [:move]
+    :perform-move [{msg/topic [:requested-move]
+                    (msg/param :player) {:read-as :data}
+                    (msg/param :slot) {:read-as :data}}]]])
+
+(defn send-move [inputs]
+  (let [message (:message inputs)
+        game (get-in inputs [:new-model :game])]
+    [{msg/type :perform-move :msg/topic [:game] :game game :move (select-keys
+                                                                  message
+                                                                  [:slot :player])}]))
+
+(defn send-tick [message]
+  (if (:tick message)
+    [{msg/type :perform-tick :msg/topic [:game]}]))
+
 (def example-app
-  ;; There are currently 2 versions (formats) for dataflow
-  ;; description: the original version (version 1) and the current
-  ;; version (version 2). If the version is not specified, the
-  ;; description will be assumed to be version 1 and an attempt
-  ;; will be made to convert it to version 2.
   {:version 2
-   :transform [[:set-value [:greeting] set-value-transform]]})
+   
+   :transform [[:swap [:game] swap-transform]
+               [:perform-move [:requested-move] move-transform]
+               [:tick [:request-tick] inc-transform]]
 
-;; Once this behavior works, run the Data UI and record
-;; rendering data which can be used while working on a custom
-;; renderer. Rendering involves making a template:
-;;
-;; app/templates/agricola-client.html
-;;
-;; slicing the template into pieces you can use:
-;;
-;; app/src/agricola_client/html_templates.cljs
-;;
-;; and then writing the rendering code:
-;;
-;; app/src/agricola_client/rendering.cljs
+   :effect #{{:in #{[:requested-move]}
+              :fn send-move}
+;             [{[:requested-move] :move [:game] :game} send-move :map]
+             [{[:tick] :tick} send-tick :map]}
+   
+   :continue #{[#{}]}
 
-(comment
-  ;; The examples below show the signature of each type of function
-  ;; that is used to build a behavior dataflow.
+   :emit [{:init init-game}
+          [#{[:requested-move]
+             [:game :game-id]
+             [:game :players :*]
+             [:game :slots]} (app/default-emitter [:main])]]
 
-  ;; transform
-
-  (defn example-transform [old-state message]
-    ;; returns new state
-    )
-
-  ;; derive
-
-  (defn example-derive [old-state inputs]
-    ;; returns new state
-    )
-
-  ;; emit
-
-  (defn example-emit [inputs]
-    ;; returns rendering deltas
-    )
-
-  ;; effect
-
-  (defn example-effect [inputs]
-    ;; returns a vector of messages which effect the outside world
-    )
-
-  ;; continue
-
-  (defn example-continue [inputs]
-    ;; returns a vector of messages which will be processed as part of
-    ;; the same dataflow transaction
-    )
-
-  ;; dataflow description reference
-
-  {:transform [[:op [:path] example-transform]]
-   :derive    #{[#{[:in]} [:path] example-derive]}
-   :effect    #{[#{[:in]} example-effect]}
-   :continue  #{[#{[:in]} example-continue]}
-   :emit      [[#{[:in]} example-emit]]}
-  )
+   })
