@@ -1,6 +1,7 @@
 (ns ^:shared agricola-client.behavior
     (:require [clojure.string :as string]
               [io.pedestal.app :as app]
+              [io.pedestal.app.dataflow :as d]
               [io.pedestal.app.messages :as msg]
               [io.pedestal.app.util.log :as log]))
 
@@ -10,7 +11,7 @@
   (:value message))
 
 (defn move-transform [t message]
-  (select-keys message [:player :slot]))
+  (select-keys message [:player :slot :targets]))
 
 (defn inc-transform [_ message]
   ((fnil inc 1) (:value message)))
@@ -20,42 +21,64 @@
 
 (defn init-game [_]
   [[:node-create [:move] :map]
+
+   [:transform-enable [:resources]
+    :swap [{msg/topic [:game :players :bryn :resources]
+            :value {:food 100 :wood 100 :clay 100 :reed 100 :stone 100 :grain 100 :vegetable 100}}]]
+
    [:transform-enable [:tick]
-    :tick [{msg/topic [:request-tick]}]] 
-   [:transform-enable [:move]
+    :request-tick [{msg/topic [:tick]}]]
+   
+   [:transform-enable [:move-1]
     :perform-move [{msg/topic [:requested-move]
                     (msg/param :player) {:read-as :data}
-                    (msg/param :slot) {:read-as :data}}]]])
+                    (msg/param :slot) {:read-as :data}
+                    (msg/param :targets) {:read-as :data}}]]])
 
 (defn send-move [inputs]
   (let [message (:message inputs)
         game (get-in inputs [:new-model :game])]
     [{msg/type :perform-move :msg/topic [:game] :game game :move (select-keys
                                                                   message
-                                                                  [:slot :player])}]))
+                                                                  [:slot :player :targets])}]))
 
-(defn send-tick [message]
-  (if (:tick message)
-    [{msg/type :perform-tick :msg/topic [:game]}]))
+(defn send-tick [inputs]
+  [{msg/type :perform-tick :msg/topic [:game] :game (get-in inputs [:new-model :game])}])
+
+
+(defn player-emit [inputs]
+  (let [new (merge (d/added-inputs inputs) (d/updated-inputs inputs))]
+    (log/debug new))
+
+  [])
 
 (def example-app
   {:version 2
    
-   :transform [[:swap [:game] swap-transform]
+   :transform [[:swap [:**] swap-transform]
                [:perform-move [:requested-move] move-transform]
-               [:tick [:request-tick] inc-transform]]
+               [:request-tick [:tick] inc-transform]]
 
    :effect #{{:in #{[:requested-move]}
               :fn send-move}
-;             [{[:requested-move] :move [:game] :game} send-move :map]
-             [{[:tick] :tick} send-tick :map]}
+             {:in #{[:tick]} :fn send-tick}}
    
    :continue #{[#{}]}
 
    :emit [{:init init-game}
           [#{[:requested-move]
-             [:game :game-id]
-             [:game :players :*]
-             [:game :slots]} (app/default-emitter [:main])]]
+             [:tick]
 
+             [:error]
+             
+             [:game :game-id]
+             [:game :slots :*]
+
+             [:game :players :* :name]
+             [:game :players :* :resources]
+             [:game :players :* :animals]
+             [:game :players :* :starting-player]
+             [:game :players :* :board :*]
+             } (app/default-emitter [:main])]
+          ]
    })

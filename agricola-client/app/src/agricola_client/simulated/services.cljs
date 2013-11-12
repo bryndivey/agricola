@@ -4,18 +4,32 @@
             [io.pedestal.app.util.log :as log]
             [agricola-client.actions :as actions]))
 
+(defn new-game [input-queue game]
+  (p/put-message input-queue {msg/type :swap
+                              msg/topic [:game]
+                              :value game}))
+
 (defn perform-move [input-queue game move]
-  (let [new-game (actions/perform-move game move)]
-    (p/put-message input-queue {msg/type :swap
-                                msg/topic [:game]
-                                :value new-game})))
+  (comment p/put-message input-queue {msg/type :swap msg/topic [:requested-move] :value nil})
+  (let [valid (actions/valid-move? game move)]
+    (if valid
+      (let [n (actions/perform-move game move)]
+        (log/info "NEW GAME" n)
+        (new-game input-queue n))
+      (p/put-message input-queue {msg/type :swap
+                                  msg/topic [:error]
+                                  :value "INVALID MOVE!"}))))
+
+(defn tick [input-queue game]
+  (let [n (actions/game-tick game)]
+    (new-game input-queue n)))
 
 (defn services-fn [message input-queue]
-  (log/info "Message: " (msg/type message))
-  (log/info "Move: " (:move message))
-  (cond
-   (= (msg/type message) :perform-move) (perform-move input-queue
-                                                      (:game message)
-                                                      (:move message))
-   :else (log/info "Received unprocessed message: " message))
-  )
+  (log/info "RECEIVED MESSAGE " (msg/type message))
+  (let [type (msg/type message)]
+    (cond
+     (= type :perform-move) (perform-move input-queue
+                                          (:game message)
+                                          (:move message))
+     (= type :perform-tick) (tick input-queue (:game message))
+     :else (log/error "Unhandled message of type" type))))
