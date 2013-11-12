@@ -49,21 +49,28 @@
 (defn perform-tick [game]
   (reduce #(perform-action-tick %1 %2) game (range (count (:slots game)))))
 
-(defn a-resource-sink [name resource number]
+
+
+(defn a-or-action [name a1 a2]
   {:name name
    :performed false
-   :type "resource-sink"
+   :type "and-action"
+
+   :actions [a1 a2]
+
+   :perform-fn (fn [game action player args]
+                 (let ))
+})
+
+(defn a-resource-provider [name resource number]
+  {:name name
+   :performed false
+   :type "resource-provider"
    
    :resource resource 
    :number number
-   :supply number
-   :tick-fn (fn [game action]
-              (update-in action [:supply] + (:number action)))
-   :perform-fn (fn [game action player]
-                 (let [p (update-in player [:resources resource] + (:supply action))
-                       a (assoc action :supply 0)]
-                   [a p]))
-   })
+   :perform-fn (fn [game action player args]
+                 [action (update-in player [:resources resource] + number)])})
 
 (defn a-resource-sink [name resource number]
   {:name name
