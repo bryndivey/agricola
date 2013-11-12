@@ -13,23 +13,21 @@
 (defn move-transform [t message]
   (select-keys message [:player :slot :targets]))
 
-(defn inc-transform [_ message]
-  ((fnil inc 1) (:value message)))
+(defn inc-transform [old _]
+  ((fnil inc 1) old))
 
 
 ;; INITIALIZERS
 
 (defn init-game [_]
-  [[:node-create [:move] :map]
-
-   [:transform-enable [:resources]
+  [[:transform-enable [:main :resources]
     :swap [{msg/topic [:game :players :bryn :resources]
             :value {:food 100 :wood 100 :clay 100 :reed 100 :stone 100 :grain 100 :vegetable 100}}]]
 
-   [:transform-enable [:tick]
-    :request-tick [{msg/topic [:tick]}]]
+   [:transform-enable [:main :tick]
+    :do-tick [{msg/type :inc msg/topic [:tick]}]]
    
-   [:transform-enable [:move-1]
+   [:transform-enable [:main :move]
     :perform-move [{msg/topic [:requested-move]
                     (msg/param :player) {:read-as :data}
                     (msg/param :slot) {:read-as :data}
@@ -57,19 +55,17 @@
    
    :transform [[:swap [:**] swap-transform]
                [:perform-move [:requested-move] move-transform]
-               [:request-tick [:tick] inc-transform]]
+               [:inc [:tick] inc-transform]]
 
-   :effect #{{:in #{[:requested-move]}
-              :fn send-move}
+   :effect #{{:in #{[:requested-move]} :fn send-move}
              {:in #{[:tick]} :fn send-tick}}
    
    :continue #{[#{}]}
 
    :emit [{:init init-game}
           [#{[:requested-move]
-             [:tick]
-
              [:error]
+             [:tick]
              
              [:game :game-id]
              [:game :slots :*]
