@@ -1,4 +1,4 @@
-(ns agricola.game
+(ns agricola.game-old-actions
   (use [clojure.test]))
 
 (defn create-space []
@@ -39,11 +39,12 @@
   ([game player space type]
      (assoc-in game [:players player :board space :hut] type)))
 
-(defn count-huts [player]
-  (count (filter :hut (:board player))))
-
-(defn hut-type [player]
-  (:hut (first (filter :hut (:board player)))))
+(defn count-huts
+  ([player]
+     (let [huts (filter :hut (:board player))]
+       {:count (count huts) :type (:hut (first huts))}))
+  ([game player]
+     (count-huts (get-in game [:players player]))))
 
 (defn has-at-least?
   ([game player r-map]
