@@ -218,9 +218,12 @@
 
 ;; stables
 
-(defn- resources-for-stables [player args]
-  (let [n (count (:targets args))]
-    {:wood (* 2 n)}))
+(defn- resources-per-target [r-map]
+  (fn [player args]
+    (let [n (count (:targets args))]
+      (zipmap (keys r-map) (map (partial * n) (vals r-map))))))
+
+(def resources-for-stables (resources-per-target {:wood 2}))
 
 (defaction :build-stables
   :validate-fns [(v-num-targets 1 15)
@@ -230,7 +233,7 @@
                  (v-required-resources resources-for-stables)]
 
   :perform-fn (fn [_ player _ args]
-                (let [cost (resources-for-stables player args)
+                (let [cost ( resources-for-stables player args)
                       player (reduce #(add-stable %1 %2) player (map :space (:targets args)))]
                   {:player (dec-resources player cost)})))
 
@@ -249,5 +252,18 @@
 (make-resource-sink-action :three-wood :wood 3)
 
 
+(def resources-for-stable {:wood 1})
+(defaction :build-stable
+  ; TODO: refactor mercilessly with the other build stables action
+  :validate-fns [(v-num-targets 1 1)
+                 v-space-targets
+                 v-empty-space-targets
+                 (v-limit-thing-and-targets count-stables 10)
+                 (v-required-resources resources-for-stable)]
+
+  :perform-fn (fn [_ player _ args]
+                (let [cost (resources-for-stable player args)
+                      player (reduce #(add-stable %1 %2) player (map :space (:targets args)))]
+                  {:player (dec-resources player cost)})))
 
 (def a 1)
