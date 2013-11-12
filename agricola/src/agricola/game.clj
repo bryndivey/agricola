@@ -8,8 +8,9 @@
    :field nil
    :animal {:type nil :number nil}})
 
-(defn create-player [name]
-  {:name name
+(defn create-player [id name]
+  {:id id
+   :name name
    :resources {:food 0
                :wood 0
                :clay 0
@@ -26,12 +27,24 @@
    :starting-player false})
 
 (defn create-game-state []
-  {:stage 0
+  {:game-id 1
+   :stage 0
    :slots []
    :improvements []
    :players {}
 
    :move nil})
+
+
+;; players
+(defn get-player [game player]
+  (get-in game [:players player]))
+
+(defn set-player [game name player]
+  (assoc-in game [:players name] player))
+
+
+;; huts
 
 (defn add-hut
   ([player space type]
@@ -44,6 +57,15 @@
 
 (defn hut-type [player]
   (:hut (first (filter :hut (:board player)))))
+
+
+;; stables
+
+(defn add-stable [player space]
+  (assoc-in player [:board space :stable] true))
+
+(defn count-stables [player]
+  (count (filter :stable (:board player))))
 
 (defn has-at-least?
   ([game player r-map]
@@ -89,7 +111,7 @@
 
 (defn create-game []
   (-> (create-game-state)
-      (assoc-in [:players :bryn] (assoc (create-player "Bryn") :starting-player true))
+      (assoc-in [:players :bryn] (assoc (create-player :bryn "Bryn") :starting-player true))
       (add-hut :bryn 0 :wood)
       (add-hut :bryn 1 :wood)))
 
