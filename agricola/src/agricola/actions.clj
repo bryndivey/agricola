@@ -1,6 +1,7 @@
 (ns agricola.actions
   (require [agricola.create :as create]
-           [clojure.tools.logging :as log]))
+           [clojure.tools.logging :as log])
+  (use [clojure.test]))
 
 
 (defn- get-count [action game]
@@ -19,13 +20,18 @@
 (defn- g-p [game move] ((:players game) (:player move)))
 
 
-(defn possible-move? [game move]
+(defn valid-move? [game move]
+  ; should fail-out on first error but i don't know the codez for that
   (let [action (g-a game move)
-        ]
+        player (g-p game move)
+        do-validate (fn [vfn]
+                      (try
+                        (vfn game action player (dissoc move :player :slot))
+                        (catch Exception e false)))]
     (and 
      (not (:performed action))
-     (or (not (:possible-fn action))
-         ((:possible-fn action) game move)))))
+     (or (not (:validate-fns action))
+         (every? true? (map do-validate (:validate-fns action)))))))
 
 (defn perform-move [game move]
   (assert (:perform-fn (g-a game move)) "No perform action!")
@@ -59,7 +65,7 @@
    :actions [a1 a2]
 
    :perform-fn (fn [game action player args]
-                 (let ))
+)
 })
 
 (defn a-resource-provider [name resource number]
@@ -88,14 +94,87 @@
                    [a p]))
    })
 
+(defn empty-space? [space]
+  (and
+   (not (:hut space))
+   (empty? (filter identity (vals (:fences space))))
+   (not (:stable space))
+   (not (:field space))))
+
+(defn v-num-targets [min max]
+  (fn [_ _ player args]
+    (and (vector? (:targets args))
+         (>= (count (:targets args)) min)
+         (<= (count (:targets args)) max))))
+
+(defn v-empty-targets [_ _ player args]
+  (every? true? (map #(empty-space? (get-in player [:board %])) (:targets args))))
+
 (defn a-plow [name]
   {:name name
    :performed false
    :type "plow"
+
+   :validate-fns [(v-num-targets 1 1)
+                  v-empty-targets]
    
    :perform-fn (fn [game action player args]
                  ;; todo VALIDATE
-                 [action (assoc-in player [:board (:target args) :field] true)])})
+                 [action (assoc-in player [:board (first (:targets args)) :field] true)])})
+
+
+(defn a-build-rooms [name]
+  {:name name
+   :performed false
+   :type "build-rooms"
+   })
+
+
+
+
+
+(defn setup-game-for-test []
+  (let [wood-3 (a-resource-sink "Three Wood" :wood 3)
+        plow (a-plow "Plow")
+        game (update-in (create/create-game) [:slots] conj wood-3)
+        game (update-in game [:slots] conj plow)]
+    game))
+
+
+(deftest t-resource-sink
+  (let [m {:player :bryn :slot 0}
+        g1 (setup-game-for-test)
+        g2 (perform-tick g1)
+        g3 (perform-move g2 m)]
+    
+    (is (= true (valid-move? g1 m)))
+    (is (= true (valid-move? g2 m)))
+    (is (= false (valid-move? g3 m)))
+
+    (is (= 3 (-> g1 :slots first :supply)))
+    (is (= 6 (-> g2 :slots first :supply)))
+    (is (= 0 (-> g3 :slots first :supply)))
+
+    (is (= false (-> g1 :slots first :performed)))
+    (is (= false (-> g2 :slots first :performed)))
+    (is (= true (-> g3 :slots first :performed)))
+    
+    (is (= 0 (-> g1 :players :bryn :resources :wood)))
+    (is (= 0 (-> g2 :players :bryn :resources :wood)))
+    (is (= 6 (-> g3 :players :bryn :resources :wood)))))
+
+
+(deftest t-plow
+  (let [m {:player :bryn :slot 1 :targets [2]}
+        g1 (setup-game-for-test)
+        g2 (perform-move g1 m)]
+
+    (is (= false (valid-move? g1 (assoc m :targets 0))))
+    (is (= false (valid-move? g1 (assoc m :targets [0]))))
+    (is (= false (valid-move? g1 (assoc m :targets [2 3]))))
+    (is (= true (valid-move? g1 m)))
+
+    (is (= true (get-in g2 [:players :bryn :board 2 :field])))))
 
 
 (defn test-basic []
@@ -104,8 +183,15 @@
         game (update-in (create/create-game) [:slots] conj wood-3)
         game (update-in game [:slots] conj plow)]
     
-    (let [g (perform-move game {:player :bryn :slot 0})
-          g1 (perform-move g {:player :bryn :slot 1 :target 2})]
+    (let [m1 {:player :bryn :slot 0}
+          m2 {:player :bryn :slot 1 :targets [2]}
+          v1 (valid-move? game m1)
+          v2 (valid-move? game m2)
+          v (valid-move? game m2)
+          g (perform-move game {:player :bryn :slot 0})
+          g1 (perform-move g {:player :bryn :slot 1 :targets [2]})]
+      (assert (= true v1))
+      (assert (= true v2))
       (assert (= 0 (-> g1 :slots first :supply)))
       (assert (= 3 (-> g1 :players :bryn :resources :wood)))
       (assert (= true (-> g1 :slots second :performed)))
