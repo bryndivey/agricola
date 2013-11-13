@@ -9,17 +9,8 @@
 
 (def templates (html-templates/agricola-client-templates))
 
-;; The way rendering is handled below is the result of using the
-;; renderer provided in `io.pedestal.app.render`. The only requirement
-;; for a renderer is that it must implement the Renderer protocol.
-;;
-;; This renderer dispatches to rendering functions based on the
-;; requested change. See the render-config table below. Each render
-;; function takes three arguments: renderer, render operation and a
-;; a transmitter which is used to send data back to the application's
-;; behavior. This example does not use the transmitter.
 
-(defn render-page [renderer [_ path] transmitter]
+(defn render-board [renderer [_ path] transmitter]
   (let [;; The renderer that we are using here helps us map changes to
         ;; the UI tree to the DOM. It keeps a mapping of paths to DOM
         ;; ids. The `get-parent-id` function will return the DOM id of
@@ -37,11 +28,23 @@
         ;; associate this template with the node at
         ;; path. `add-template` returns a function that can be called
         ;; to generate the initial HTML.
-        html (templates/add-template renderer path (:agricola-client-page templates))]
+        html (templates/add-template renderer path (:board-page templates))]
     ;; Call the `html` function, passing the initial values for the
     ;; template. This returns an HTML string which is then added to
     ;; the DOM using Domina.
-    (dom/append! (dom/by-id parent) (html {:id id :message ""}))))
+    (dom/append! (dom/by-id parent) (html {:id id}))))
+
+(defn render-slot [renderer [_ path] transmitter]
+  (let [parent (render/get-parent-id renderer path)
+        id (render/new-id! renderer path)
+        html (templates/add-template renderer path (:slot templates))]
+    (templates/update-t renderer (butlast path)
+                        {:slots 
+                         (html {:id id :action "No action" :performed false})})))
+
+(defn update-slot [renderer [_ path _ new-value] transmitter]
+  (templates/update-t renderer path {:action (:action new-value)
+                                     :performed (:performed new-value)}))
 
 (defn render-message [renderer [_ path _ new-value] transmitter]
   ;; This function responds to a :value event. It uses the
@@ -60,12 +63,16 @@
    ;; :greeting is a default name that is used when we don't
    ;; provide our own derives and emits. To name your own nodes,
    ;; create a custom derive or emit in the application's behavior.
-   [:node-create  [:greeting] render-page]
+   [:node-create  [:game :slots] render-board]
    ;; All :node-destroy deltas for this path will be handled by the
    ;; library function `d/default-exit`.
-   [:node-destroy   [:greeting] d/default-exit]
+   [:node-destroy   [:game :slots] d/default-exit]
    ;; All :value deltas for this path will be handled by the
    ;; function `render-message`.
+   [:node-create [:game :slots :*] render-slot]
+   [:node-destroy [:game :slots :*] d/default-exit]
+   [:value [:game :slots :*] update-slot]
+   
    [:value [:greeting] render-message]])
 
 ;; In render-config, paths can use wildcard keywords :* and :**. :*

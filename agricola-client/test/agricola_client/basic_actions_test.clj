@@ -16,6 +16,12 @@
     (is (= 3 (get-in g1 [:slots :three-wood :supply])))
     (is (= 6 (get-in g2 [:slots :three-wood :supply])))))
 
+(deftest t-move-count
+  (let [g1 (setup-game-for-test)
+        g2 (assoc-in g1 [:players :bryn :family] 0)]
+
+    (is (= false (valid-move? g2 {:player :bryn :slot :three-wood})))))
+
 (deftest t-starting-player
   (let [g1 (setup-game-for-test)
         g2 (perform-move g1 {:player :bryn :slot :starting-player})]
@@ -39,7 +45,7 @@
 
     (is (= false (get-in g1 [:slots :three-wood :performed])))
     (is (= false (get-in g2 [:slots :three-wood :performed])))
-    (is (= true (get-in g3 [:slots :three-wood :performed])))
+    (is (= :bryn (get-in g3 [:slots :three-wood :performed])))
     
     (is (= 0 (-> g1 :players :bryn :resources :wood)))
     (is (= 0 (-> g2 :players :bryn :resources :wood)))
@@ -58,7 +64,7 @@
     (is (= true (valid-move? g1 m)))
 
     (is (= true (get-in g2 [:players :bryn :board 2 :field])))
-    (is (= {:action :plow :performed true} (get-in g2 [:slots  :plow])))))
+    (is (= {:action :plow :performed :bryn} (get-in g2 [:slots  :plow])))))
 
 (deftest t-build-rooms
   (let [m {:player :bryn :slot :build-rooms :targets [{:space 2}]}
@@ -71,7 +77,7 @@
     (is (= :wood (get-in g3 [:players :bryn :board 2 :hut])))
     (is (= 0 (get-in g3 [:players :bryn :resources :wood])))
     (is (= 0 (get-in g3 [:players :bryn :resources :reed])))
-    (is (= {:action :build-rooms :performed true} (get-in g3 [:slots :build-rooms])))
+    (is (= {:action :build-rooms :performed :bryn} (get-in g3 [:slots :build-rooms])))
 
     ;; more than five rooms?
     (let [g (assoc-in g3 [:players :bryn] (-> (get-in g3 [:players :bryn])
@@ -88,7 +94,7 @@
     (is (= 1 (count-stables (get-in game [:players :bryn]))))
     (is (= true (get-in game [:players :bryn :board 2 :stable])))
     (is (= 0 (get-in game [:players :bryn :resources :wood])))
-    (is (= {:action :build-stables :performed true} (get-in game [:slots :build-stables])))))
+    (is (= {:action :build-stables :performed :bryn} (get-in game [:slots :build-stables])))))
 
 (deftest t-all
   (t-three-wood-tick)

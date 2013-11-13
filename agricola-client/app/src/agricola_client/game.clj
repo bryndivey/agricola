@@ -10,6 +10,7 @@
 (defn create-player [id name]
   {:id id
    :name name
+   :family 2
    :resources {:food 0
                :wood 0
                :clay 0
@@ -21,7 +22,8 @@
              :cattle 0
              :boar 0}
    :board (zipmap (range) (vec (repeat 15 (create-space))))
-   :starting-player false})
+   :starting-player false
+   :moves []})
 
 (defn create-game-state []
   {:game-id 1
@@ -71,6 +73,8 @@
        r2
        (not (some #(< % 0) (vals r2))))))
 
+;; resource manipulation
+
 (defn- munge-resources
   "Modify the player's resources dict with an op, only modifying resources that exist in the player's map"
   ([op player r-map]
@@ -97,6 +101,14 @@
      (munge-resources + player r-map))
   ([game player r-map]
      (munge-resources + game player r-map)))
+
+
+;; move counts
+
+(defn move-count [game player]
+  (get (frequencies (map :performed (vals (:slots game)))) player 0))
+
+
 
 (defn empty-space? [space]
   (and

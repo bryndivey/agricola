@@ -1,6 +1,7 @@
 (ns ^:shared agricola-client.actions
   (:require [agricola-client.game :refer [create-game
                                           empty-space?
+                                          move-count
                                           get-player set-player
                                           dec-resources inc-resources has-at-least?
                                           add-hut hut-type count-huts
@@ -41,9 +42,11 @@
 (defn valid-move? [game move]
   ; should fail-out on first error but i don't know the codez for that
   (assert (every? #{:player :slot} (keys (select-keys move [:player :slot]))) "Must have :player and :slot on every move!")
+  
   (let [slot (g-s game move)
         player (g-p game move)
         vfns (get-action-fn (:action slot) :validate)
+        moves (move-count game (:id player))
         do-validate (fn [vfn]
                       (try
                         (vfn game player slot (dissoc move :player :slot))
@@ -51,6 +54,7 @@
     (and
      slot
      (not (:performed slot))
+     (not (>= (move-count game (:id player)) (:family player)))
      (or (not vfns)
          (every? true? (map do-validate vfns))))))
 
@@ -65,14 +69,15 @@
           result (fn game player slot args)
           _ (assert (or (:game-id result)
                         (some #{:player :slot} (keys result))) "Must return :player or :slot or a game map from action perform")
-          ]
-      (if (:game-id result)
-        (assoc-in result [:slots (:slot move) :performed] true)
-        (let [state (merge {:player player :slot slot} result)
-              state (assoc-in state [:slot :performed] true)]
-          (-> game
-              (assoc-in [:slots (:slot move)] (:slot state))
-              (assoc-in [:players (:player move)] (:player state))))))))
+          new-game (if (:game-id result)
+                     result
+                     (let [state (merge {:player player :slot slot} result)]
+                       (-> game
+                           (assoc-in [:slots (:slot move)] (:slot state))
+                           (assoc-in [:players (:player move)] (:player state)))))]
+      (-> new-game
+          (assoc-in [:slots (:slot move) :performed] (:player move))
+          (update-in [:players (:player move) :moves] conj move)))))
 
 ;; action creation
 

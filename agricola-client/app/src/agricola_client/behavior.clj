@@ -75,6 +75,8 @@
              [:game :players :* :resources]
              [:game :players :* :animals]
              [:game :players :* :starting-player]
+             [:game :players :* :family]
+             [:game :players :* :moves]
              [:game :players :* :board :*]
              } (app/default-emitter [:main])]
           ]

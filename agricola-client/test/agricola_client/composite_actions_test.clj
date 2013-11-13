@@ -28,19 +28,19 @@
     (let [g2 (perform-move g1 {:player :bryn :slot :build-rooms-or-stables :targets {:build-rooms [{:space 2}]}})]
       (is (= 3 (count-huts (get-player g2 :bryn))))
       (is (= 2 (get-in g2 [:players :bryn :resources :wood])))
-      (is (= true (get-in g2 [:slots :build-rooms-or-stables :performed]))))
+      (is (= :bryn (get-in g2 [:slots :build-rooms-or-stables :performed]))))
 
     (let [g2 (perform-move g1 {:player :bryn :slot :build-rooms-or-stables :targets {:build-stables [{:space 2}]}})]
       (is (= 1 (count-stables (get-player g2 :bryn))))
       (is (= 5 (get-in g2 [:players :bryn :resources :wood])))
-      (is (= true (get-in g2 [:slots :build-rooms-or-stables :performed]))))
+      (is (= :bryn (get-in g2 [:slots :build-rooms-or-stables :performed]))))
     
     (let [g2 (perform-move g1 {:player :bryn :slot :build-rooms-or-stables :targets {:build-stables [{:space 3}]
                                                                                      :build-rooms [{:space 2}]}})]
       (is (= 1 (count-stables (get-player g2 :bryn))))
       (is (= 3 (count-huts (get-player g2 :bryn))))
       (is (= 0 (get-in g2 [:players :bryn :resources :wood])))
-      (is (= true (get-in g2 [:slots :build-rooms-or-stables :performed]))))))
+      (is (= :bryn (get-in g2 [:slots :build-rooms-or-stables :performed]))))))
 
 
 
