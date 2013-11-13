@@ -11,40 +11,35 @@
   
   <div id="content">
 
-    <div class="row-fluid" template="board-page">
-      <div class="span6">
-	<div id="board">
-	  <div id="slots">
-	    <div template="slot" field="id:id">
-	      <span class="label">Name</span>
-	      <span field="content:action">One Grain</span>
-	      <span class="label">Played</span>
-	      <span field="content:performed">False</span>
+    <div template="board-page">
+      <div class="row">
+
+	<div class="col-md-6">
+	  <div id="board">
+	    <div id="slots" class="row">
+	      <div class="col-md-12 action-slot" template="slot" field="id:id">
+		<h3><small>Action</small> <span field="content:action"/></h3>
+		<h5><small>Played</small> <span field="content:performed"/></h3>
+	      </div>
 	    </div>
 	  </div>
 	</div>
-      </div>
-
-      <div id="players" class="span6">
-	<div template="player" field="id:id" class="row-fluid">
-	  <div class="player-info row-fluid">
-	    <span class="label">Name</span>
-	    <span field="content:name">Bryn!</span>
-
-	    <span class="label">Family Members</span>
-	    <span field="content:family">Bryn!</span>
-
-	    <span class="label">Starting Player</span>
-	    <span field="content:starting-player">Bryn!</span>
-
-	    <span class="label">Resources</span>
-	    <span field="content:resources">Bryn!</span>
-	  </div>
-
-
-	  <div class="player-board row-fluid">
-	    <div class="span4 player-board-space" template="board-space" field="id:id">
-	      <span field="content:space">Empty space</span>
+      
+	<div id="players" class="col-md-6">
+	  <div template="player" field="id:id" class="row">
+	    <div class="player-info col-md-12">
+	      <h4><small>Name</small>&nbsp;<span field="content:name">Bryn!</span></h4>
+	      <h4><small>Family Members</small>&nbsp;<span field="content:family">Bryn!</span></h4>
+	      <h4><small>Starting Player</small>&nbsp;<span field="content:starting-player">No</span></h4>
+	      <h4><small>Resources</small>&nbsp;<span field="content:resources">{:cow 1}</span></h4>
+	    </div>
+	    
+	    
+	    <div class="player-board col-md-12">
+	      <div class="col-md-4 player-board-space" template="board-space" field="id:id">
+		<span class="number" field="content:number">9001</span>
+		<span field="content:space">Empty space</span>
+	      </div>
 	    </div>
 	  </div>
 	</div>

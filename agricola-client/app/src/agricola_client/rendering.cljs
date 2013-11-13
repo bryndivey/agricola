@@ -16,7 +16,8 @@
   (let [parent (render/get-parent-id renderer path)
         id (render/new-id! renderer path)
         html (templates/add-template renderer path (:board-page templates))]
-    (dom/append! (dom/by-id "content") (html {:id id :slots "Slots are here"}))))
+    (dom/append! (dom/by-id "content") (html {:id id :slots "Slots are here"}))
+    (dom/destroy-children! (dom/by-id "players"))))
 
 
 ;; slots
@@ -28,9 +29,12 @@
         content (html {:id id :action "No action" :performed "Dunno"})]
     (dom/append! (dom/by-id "slots") content)))
 
+(defn yes-no-str [bool]
+  (if bool "Yes" "No"))
+
 (defn update-slot [renderer [_ path _ new-value] transmitter]
-  (templates/update-t renderer path {:action (str (:action new-value))
-                                     :performed (str (:performed new-value))}))
+  (templates/update-t renderer path {:action (clojure.string/capitalize (name (:action new-value)))
+                                     :performed (yes-no-str (:performed new-value))}))
 
 
 
@@ -51,15 +55,14 @@
         board (second (dom/children (dom/by-id parent)))
         id (render/new-id! r p)
         html (templates/add-template r p (:board-space templates))]
-    (log/error "RENDER" parent board)
-    (dom/append! board (html {:space "None"}))))
+    (dom/append! board (html {:id id :number "9001" :space "None" }))))
 
 (defn update-player-space [renderer [_ path _ new-value] transmitter]
   (let [hut (and (:hut new-value) (str (:hut new-value) " hut"))
         stable (and (:stable new-value) "stable")
         field (and (:field new-value) "field")]
     (log/error "UPDATE" path :val new-value)
-    (templates/update-t renderer path {:space (str hut stable field)})))
+    (templates/update-t renderer path {:number (str (last path)) :space (str hut stable field)})))
 
 ;; The data structure below is used to map rendering data to functions
 ;; which handle rendering for that specific change. This function is
@@ -67,7 +70,9 @@
 ;; be used from the tool's "render" view.
 
 (defn render-config []
-  [[:node-create  [:main :game] render-board]
+  [
+
+   [:node-create  [:main :game] render-board]
    [:node-destroy   [:main :game] d/default-exit]
    
    [:node-create [:main :game :slots :*] render-slot]
