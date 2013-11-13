@@ -14,7 +14,9 @@
   ;; The last argument to 'dtfn' is a set of fields that should be
   ;; treated as static fields (may only be set once). Dynamic templates
   ;; use ids to set values so you cannot dynamically set an id.
-  {:board-page (dtfn (tnodes "agricola-client.html" "agricola-board-page") #{:id})
-   :slot (dtfn (tnodes "agricola-client.html" "slot") #{:id})})
+  {:board-page (dtfn (tnodes "agricola-client.html" "board-page" [[:#slots] [:#players]]) #{})
+   :slot (dtfn (tnodes "agricola-client.html" "slot") #{:id})
+   :player (dtfn (tnodes "agricola-client.html" "player" [[:.board]]) #{:id})
+   :board-space (dtfn (tnodes "agricola-client.html" "board-space") #{:id})})
 
 ;; Note: this file will not be reloaded automatically when it is changed.

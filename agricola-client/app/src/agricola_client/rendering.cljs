@@ -1,8 +1,10 @@
 (ns agricola-client.rendering
   (:require [domina :as dom]
+            [domina.css :refer [sel]]
             [io.pedestal.app.render.push :as render]
             [io.pedestal.app.render.push.templates :as templates]
-            [io.pedestal.app.render.push.handlers.automatic :as d])
+            [io.pedestal.app.render.push.handlers.automatic :as d]
+            [io.pedestal.app.util.log :as log])
   (:require-macros [agricola-client.html-templates :as html-templates]))
 
 ;; Load templates.
@@ -11,46 +13,53 @@
 
 
 (defn render-board [renderer [_ path] transmitter]
-  (let [;; The renderer that we are using here helps us map changes to
-        ;; the UI tree to the DOM. It keeps a mapping of paths to DOM
-        ;; ids. The `get-parent-id` function will return the DOM id of
-        ;; the parent of the node at path. If the path is [:a :b :c]
-        ;; then this will find the id associated with [:a :b]. The
-        ;; root node [] is configured when we created the renderer.
-        parent (render/get-parent-id renderer path)
-        ;; Use the `new-id!` function to associate a new id to the
-        ;; given path. With two arguments, this function will generate
-        ;; a random unique id. With three arguments, the given id will
-        ;; be associated with the given path.
+  (let [parent (render/get-parent-id renderer path)
         id (render/new-id! renderer path)
-        ;; Get the dynamic template named :agricola-client-page
-        ;; from the templates map. The `add-template` function will
-        ;; associate this template with the node at
-        ;; path. `add-template` returns a function that can be called
-        ;; to generate the initial HTML.
         html (templates/add-template renderer path (:board-page templates))]
-    ;; Call the `html` function, passing the initial values for the
-    ;; template. This returns an HTML string which is then added to
-    ;; the DOM using Domina.
-    (dom/append! (dom/by-id parent) (html {:id id}))))
+    (dom/append! (dom/by-id "content") (html {:id id :slots "Slots are here"}))))
+
+
+;; slots
 
 (defn render-slot [renderer [_ path] transmitter]
   (let [parent (render/get-parent-id renderer path)
         id (render/new-id! renderer path)
-        html (templates/add-template renderer path (:slot templates))]
-    (templates/update-t renderer (butlast path)
-                        {:slots 
-                         (html {:id id :action "No action" :performed false})})))
+        html (templates/add-template renderer path (:slot templates))
+        content (html {:id id :action "No action" :performed "Dunno"})]
+    (dom/append! (dom/by-id "slots") content)))
 
 (defn update-slot [renderer [_ path _ new-value] transmitter]
-  (templates/update-t renderer path {:action (:action new-value)
-                                     :performed (:performed new-value)}))
+  (templates/update-t renderer path {:action (str (:action new-value))
+                                     :performed (str (:performed new-value))}))
 
-(defn render-message [renderer [_ path _ new-value] transmitter]
-  ;; This function responds to a :value event. It uses the
-  ;; `update-t` function to update the template at `path` with the new
-  ;; values in the passed map.
-  (templates/update-t renderer path {:message new-value}))
+
+
+(defn render-player [r [_ p] t]
+  (let [id (render/new-id! r p)
+        html (templates/add-template r p (:player templates))]
+    (dom/append! (dom/by-id "players") (html {:id id :name "None yet"}))
+    (dom/destroy-children! (second (dom/children (dom/by-id id))))))
+
+(defn update-player [renderer [_ path _ new-value] transmitter]
+  (let [key (last path)
+        path (vec (butlast path))]
+    (log/error :path player :key key :new-value (str new-value))
+    (templates/update-t renderer path {key (str new-value)})))
+
+(defn render-player-space [r [_ p] t]
+  (let [parent (render/get-id r (vec (butlast (butlast p))))
+        board (second (dom/children (dom/by-id parent)))
+        id (render/new-id! r p)
+        html (templates/add-template r p (:board-space templates))]
+    (log/error "RENDER" parent board)
+    (dom/append! board (html {:space "None"}))))
+
+(defn update-player-space [renderer [_ path _ new-value] transmitter]
+  (let [hut (and (:hut new-value) (str (:hut new-value) " hut"))
+        stable (and (:stable new-value) "stable")
+        field (and (:field new-value) "field")]
+    (log/error "UPDATE" path :val new-value)
+    (templates/update-t renderer path {:space (str hut stable field)})))
 
 ;; The data structure below is used to map rendering data to functions
 ;; which handle rendering for that specific change. This function is
@@ -58,22 +67,20 @@
 ;; be used from the tool's "render" view.
 
 (defn render-config []
-  [;; All :node-create deltas for the node at :greeting will
-   ;; be rendered by the `render-page` function. The node name
-   ;; :greeting is a default name that is used when we don't
-   ;; provide our own derives and emits. To name your own nodes,
-   ;; create a custom derive or emit in the application's behavior.
-   [:node-create  [:game :slots] render-board]
-   ;; All :node-destroy deltas for this path will be handled by the
-   ;; library function `d/default-exit`.
-   [:node-destroy   [:game :slots] d/default-exit]
-   ;; All :value deltas for this path will be handled by the
-   ;; function `render-message`.
-   [:node-create [:game :slots :*] render-slot]
-   [:node-destroy [:game :slots :*] d/default-exit]
-   [:value [:game :slots :*] update-slot]
+  [[:node-create  [:main :game] render-board]
+   [:node-destroy   [:main :game] d/default-exit]
    
-   [:value [:greeting] render-message]])
+   [:node-create [:main :game :slots :*] render-slot]
+   [:node-destroy [:main :game :slots :*] d/default-exit]
+   [:value [:main :game :slots :*] update-slot]
+
+   [:node-create [:main :game :players :* :board :*] render-player-space]
+   [:value [:main :game :players :* :board :*] update-player-space]
+   
+   [:node-create [:main :game :players :*] render-player]
+   [:value [:main :game :players :**] update-player]
+   
+])
 
 ;; In render-config, paths can use wildcard keywords :* and :**. :*
 ;; means exactly one segment with any value. :** means 0 or more

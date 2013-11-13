@@ -22,4 +22,5 @@
   (let [app (start/create-app (if (= "auto" (param "renderer"))
                                 d/data-renderer-config
                                 (rendering/render-config)))]
-    (app/consume-effects (:app app) services/services-fn)))
+    (app/consume-effects (:app app) services/services-fn)
+    app))
