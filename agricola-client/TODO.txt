@@ -1,2 +1,4 @@
 - proper animal target validator
 - proper animal sink action (place to slots)
+- proper fence validation
+- actual improvements

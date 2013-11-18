@@ -1,15 +1,17 @@
 (ns ^:shared agricola-client.games.family
-    (:require [agricola-client.create :refer [create-with-slots]]))
+    (:require [agricola-client.create :refer [create-with-slots
+                                              add-round-slots]]))
 
 (def init-slots [;; composites
                  :build-rooms
-                 :build-stable
+                 :build-stables
 
                  ;; exposed
                  :build-rooms-or-stables
                  :starting-player
                  :one-grain
                  :plow
+                 :build-stable
                  :day-labourer
                  :three-wood
                  :one-clay
@@ -18,5 +20,8 @@
 
 (def round-one-slots [:one-sheep
                       :sow
-                      :fences])
-(def slots )
+                      :fences
+                      :major-or-minor-improvement])
+(defn create []
+  (-> (create-with-slots init-slots)
+      (add-round-slots round-one-slots)))

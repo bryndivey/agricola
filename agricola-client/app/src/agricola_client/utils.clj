@@ -117,5 +117,8 @@
 (defn g-s [game move] ((:slots game) (:slot move)))
 (defn g-p [game move] ((:players game) (:player move)))
 
+(defn exposed-slot [game slot]
+  (boolean (some #{slot} (take (+ (:num-base-actions game) (:round game)) (:slot-order game)))))
+
 
 

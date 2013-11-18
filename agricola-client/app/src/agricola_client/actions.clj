@@ -1,20 +1,24 @@
 (ns ^:shared agricola-client.actions
-  (:require [agricola-client.game :refer [create-game
-                                          empty-space?
-                                          move-count
-                                          get-player set-player
-                                          dec-resources inc-resources has-at-least?
-                                          add-hut hut-type count-huts
-                                          add-stable count-stables]]))
+  (:require [agricola-client.utils :refer [g-s g-p
+                                           exposed-slot
+                                           empty-space?
+                                           move-count
+                                           get-player set-player
+                                           dec-resources inc-resources has-at-least?
+                                           add-hut hut-type count-huts
+                                           add-stable count-stables
+                                           sow-field
+                                           build-fence
+                                           hut? field?]]))
 
 ;; action function mappings
 
 (def action-fn-map (atom {}))
 
 (defn list-actions []
-  (keys @action-fn-map))
+  (keys (filter #(not (:partial (second %))) @action-fn-map)))
 
-(defn- get-action-fn [action type]
+(defn get-action-fn [action type]
   (get-in @action-fn-map [action type]))
 
 (defn action-create [action-name]
@@ -22,21 +26,24 @@
     (fn)))
 
 
-(defn slot-tick [slot]
-  (let [slot (assoc slot :performed false)
-        fn (get-action-fn (:action slot) :tick)]
-    (if fn
-      (fn slot)
-      slot)))
 
-(defn game-tick [game]
-  (assoc game :slots (zipmap (keys (:slots game))
-                             (map slot-tick (vals (:slots game))))))
+;; action creation
 
+(defn- make-create-fn [action]
+  (fn []
+    {:action action
+     :performed false}))
 
+(defn defaction [name & {:keys [validate-fns perform-fn create-fn tick-fn partial] :as obj}]
+  (let [kwname (keyword name)]
+    (assert perform-fn "Must define a perform-fn")
+    (swap! action-fn-map assoc kwname {:create (if create-fn create-fn (make-create-fn kwname))
+                                       :validate validate-fns
+                                       :perform perform-fn
+                                       :tick tick-fn
+                                       :partial partial})))
 
-(defn- g-s [game move] ((:slots game) (:slot move)))
-(defn- g-p [game move] ((:players game) (:player move)))
+;; validation
 
 
 (defn valid-move? [game move]
@@ -50,19 +57,56 @@
         do-validate (fn [vfn]
                       (try
                         (vfn game player slot (dissoc move :player :slot))
-                        (catch Exception e false)))]
-    (and
-     slot
-     (not (:performed slot))
-     (not (>= (move-count game (:id player)) (:family player)))
-     (or (not vfns)
-         (every? true? (map do-validate vfns))))))
+                        (catch Exception e false)))
+
+        t-exposed (exposed-slot game (:slot move))
+        t-performed (not (:performed slot))
+        t-count (not (>= (move-count game (:id player)) (:family player)))
+        t-slot (or (not vfns)
+                   (every? true? (map do-validate vfns)))
+        t-all (and t-exposed t-performed t-count t-slot)]
+    t-all))
+
+
+(defn v-num-targets [min max]
+  (fn [_ player _ args]
+    (let [t (:targets args)]
+      (and (vector? t)
+           (>= (count t) min)
+           (<= (count t) max)))))
+
+(defn v-space-targets [_ player _ args]
+  "Are these targets spaces"
+  (every? :space (:targets args)))
+
+(defn get-targets-spaces [player targets]
+  "Get the space maps referred to by the targets"
+  (map #(get-in player [:board %]) (map :space targets)))
+
+(defn v-empty-space-targets [_ player _ args]
+  "Are these space targets empty"
+  (every? true? (map empty-space? (get-targets-spaces player (:targets args)))))
+
+(defn v-limit-thing-and-targets [thing-counter-fn num]
+  (fn [_ player _ args]
+    (let [new (count (:targets args))]
+      (<= (+ new (thing-counter-fn player)) num))))
+
+(defn v-required-resources [resource-counter]
+  (fn [_ player _ args]
+    (let [cost (resource-counter player args)]
+      (has-at-least? player (resource-counter player args)))))
+
+
+;; Performs
 
 (defn perform-move [game move]
   (let [slot (g-s game move)
         player (g-p game move)]
 
+    (assert slot (format "Slot %s doesn't exist!" (:slot move)))
     (assert (valid-move? game move))
+
 
     (let [fn (get-action-fn (:action slot) :perform)
           args (dissoc move :player :slot)
@@ -78,49 +122,6 @@
       (-> new-game
           (assoc-in [:slots (:slot move) :performed] (:player move))
           (update-in [:players (:player move) :moves] conj move)))))
-
-;; action creation
-
-(defn- make-create-fn [action]
-  (fn []
-    {:action action
-     :performed false}))
-
-(defn defaction [name & {:keys [validate-fns perform-fn create-fn tick-fn]}]
-  (let [kwname (keyword name)]
-    (assert perform-fn "Must define a perform-fn")
-    (swap! action-fn-map assoc kwname {:create (if create-fn create-fn (make-create-fn kwname))
-                                       :validate validate-fns
-                                       :perform perform-fn
-                                       :tick tick-fn})))
-
-;; validation
-
-(defn v-num-targets [min max]
-  (fn [_ player _ args]
-    (let [t (:targets args)]
-      (and (vector? t)
-           (>= (count t) min)
-           (<= (count t) max)))))
-
-(defn v-space-targets [_ player _ args]
-  "Are these targets spaces"
-  (every? :space (:targets args)))
-
-(defn v-empty-space-targets [_ player _ args]
-  "Are these space targets empty"
-  (every? true? (map #(empty-space? (get-in player [:board %])) (map :space (:targets args)))))
-
-(defn v-limit-thing-and-targets [thing-counter-fn num]
-  (fn [_ player _ args]
-    (let [new (count (:targets args))]
-      (<= (+ new (thing-counter-fn player)) num))))
-
-(defn v-required-resources [resource-counter]
-  (fn [_ player _ args]
-    (let [cost (resource-counter player args)]
-      (has-at-least? player (resource-counter player args)))))
-
 
 ;; COMPOSITES!
 
@@ -180,14 +181,35 @@
 
 (defn make-resource-sink-action [name resource number]
   (defaction name
-  :create-fn (fn [] {:action name
-                     :performed false
-                     :supply number})
-  :perform-fn (fn [game player slot args]
-                {:player (inc-resources player {resource (:supply slot)})
-                 :slot (assoc slot :supply 0)})
-  :tick-fn (fn [slot]
-             (update-in slot [:supply] + number)))  )
+    :create-fn (fn [] {:action name
+                       :performed false
+                       :supply number})
+    :perform-fn (fn [game player slot args]
+                  {:player (inc-resources player {resource (:supply slot)})
+                   :slot (assoc slot :supply 0)})
+    :tick-fn (fn [slot]
+               (update-in slot [:supply] + number)))  )
+
+;; animal actions
+
+(defn v-animal-targets [_ player slot args]
+  "Can the player place these animals"
+  true
+  (let [t-num (>= (:supply slot) (count (:targets args)))]
+    (println "TEST NUM" (:supply slot) (count (:targets args)))
+    (and t-num)))
+
+(defn make-animal-sink-action [name animal number]
+  (defaction name
+    :create-fn (fn [] {:action name
+                       :performed false
+                       :supply number})
+    :validate-fns [v-animal-targets]
+    :perform-fn (fn [_ player slot args]
+                  {:player (update-in player [:animals animal] + (:supply slot))
+                   :slot (assoc slot :supply 0)})
+    :tick-fn (fn [slot]
+               (update-in slot [:supply] + number))))
 
 
 ;; actual actions
@@ -199,6 +221,65 @@
   :perform-fn (fn [_ player _ args]
                 {:player (assoc-in player [:board (:space (first (:targets args))) :field] true)}))
 
+
+(defn v-empty-field-targets [_ player _ args]
+  (let [spaces (get-targets-spaces player (:targets args))]
+    (and 
+     (every? :field spaces)
+     (not-any? :resources spaces))))
+
+(defn- resources-for-sowing [player args]
+  (let [n (count (:targets args))
+        vegetable (:resource (first (:targets args)))]
+    {vegetable n}))
+
+(defaction :sow
+  :validate-fns [(v-num-targets 1 16)
+                 v-space-targets
+                 v-empty-field-targets
+                 (v-required-resources resources-for-sowing)]
+  :perform-fn (fn [_ player _ args]
+                (let [crop (:resource (first (:targets args)))
+                      cost (resources-for-sowing player args)
+                      player (reduce #(sow-field %1 %2 crop) player (map :space (:targets args)))]
+                  {:player (dec-resources player cost)})))
+
+;; fences
+;; :targets [{:space 2 :side :n}]
+
+(defn- get-fence-targets [player args]
+  (let [sides (map :side (:targets args))
+        spaces (get-targets-spaces player (:targets args))]
+    (map vector sides (map ))))
+
+(defn v-empty-fence-targets [_ player _ args]
+  (let [sides (map :side (:targets args))
+        spaces (get-targets-spaces player (:targets args))
+        t (map vector sides (map :fences spaces))]
+
+    (and
+     (every? #(not (hut? %)) spaces)
+     (every? #(not (field? %)) spaces)
+     (every? #(nil? ((first %) (second %))) t))))
+
+(defn- resources-for-fences [player args]
+  (let [n (count (:targets args))]
+    {:wood n}))
+
+(defaction :fences
+  :validate-fns [(v-num-targets 1 16)
+                 v-space-targets
+                 v-empty-fence-targets
+                 (v-required-resources resources-for-fences)]
+  :perform-fn (fn [_ player _ args]
+                (let [cost (resources-for-fences player args)
+                      vec (map vector
+                               (map :space (:targets args))
+                               (map :side (:targets args)))
+                      player (reduce #(build-fence %1 (first %2) (second %2))
+                                     player vec)]
+                  {:player (dec-resources player cost)})))
+
 ;; rooms
 
 (defn- resources-for-rooms [player args]
@@ -207,6 +288,7 @@
     {resource (* 5 n) :reed (* 2 n)})  )
 
 (defaction :build-rooms
+  :partial true
   :validate-fns [(v-num-targets 1 15)
                  v-space-targets
                  v-empty-space-targets
@@ -229,6 +311,7 @@
 (def resources-for-stables (resources-per-target {:wood 2}))
 
 (defaction :build-stables
+  :partial true
   :validate-fns [(v-num-targets 1 15)
                  v-space-targets
                  v-empty-space-targets
@@ -253,11 +336,16 @@
 
 (make-resource-provider-action :one-grain :grain 1)
 (make-resource-sink-action :three-wood :wood 3)
+(make-resource-sink-action :one-clay :clay 1)
+(make-resource-sink-action :one-reed :reed 1)
+(make-resource-sink-action :fishing :food 1)
+(make-animal-sink-action :one-sheep :sheep 1)
 
 
 (def resources-for-stable {:wood 1})
 (defaction :build-stable
   ; TODO: refactor mercilessly with the other build stables action
+  :partial true
   :validate-fns [(v-num-targets 1 1)
                  v-space-targets
                  v-empty-space-targets
@@ -269,4 +357,25 @@
                       player (reduce #(add-stable %1 %2) player (map :space (:targets args)))]
                   {:player (dec-resources player cost)})))
 
+
+
+(defn v-building-resource-targets [_ _ _ args]
+  (every? #(#{:wood :clay :reed :stone} (:resource %)) (:targets args)))
+
+
+(defaction :day-labourer
+  :validate-fns [(v-num-targets 1 1)
+                 v-building-resource-targets]
+
+  :perform-fn (fn [_ player _ args]
+                {:player (inc-resources player {:food 1
+                                                (:resource (first (:targets args))) 1})})
+  )
+
+(defaction :major-or-minor-improvement
+  :perform-fn (fn [_ player _ _]
+                {:player player}))
+
+
 (def a 1)
+

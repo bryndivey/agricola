@@ -1,5 +1,6 @@
 (ns agricola-client.composite-actions-test
   (:require [clojure.test :refer :all]
+            [agricola-client.utils :refer :all]
             [agricola-client.create :refer [create-with-slots]]
             [agricola-client.game :refer :all]
             [agricola-client.actions :refer :all]))
