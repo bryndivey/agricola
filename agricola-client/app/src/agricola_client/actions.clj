@@ -183,7 +183,7 @@
   (defaction name
     :create-fn (fn [] {:action name
                        :performed false
-                       :supply number})
+                       :supply 0})
     :perform-fn (fn [game player slot args]
                   {:player (inc-resources player {resource (:supply slot)})
                    :slot (assoc slot :supply 0)})
@@ -203,7 +203,7 @@
   (defaction name
     :create-fn (fn [] {:action name
                        :performed false
-                       :supply number})
+                       :supply 0})
     :validate-fns [v-animal-targets]
     :perform-fn (fn [_ player slot args]
                   {:player (update-in player [:animals animal] + (:supply slot))

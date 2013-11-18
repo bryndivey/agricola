@@ -31,6 +31,7 @@
   {:game-id 1
    :round 0
    :num-base-actions 0
+   :round-lengths nil
    :slots {}
    :slot-order []
    :players {}

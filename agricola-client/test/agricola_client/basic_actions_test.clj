@@ -16,8 +16,8 @@
     
     (is (= 3 (get-in g1 [:slots :three-wood :supply])))
     (is (= 6 (get-in g2 [:slots :three-wood :supply])))
-    (is (= 0 (:round g1)))
-    (is (= 1 (:round g2)))))
+    (is (= 1 (:round g1)))
+    (is (= 2 (:round g2)))))
 
 (deftest t-one-sheep
   (let [g1 (setup-game-for-test)

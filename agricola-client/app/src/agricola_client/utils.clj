@@ -118,6 +118,7 @@
 (defn g-p [game move] ((:players game) (:player move)))
 
 (defn exposed-slot [game slot]
+  "Has this slot been made available according to the number of rounds played"
   (boolean (some #{slot} (take (+ (:num-base-actions game) (:round game)) (:slot-order game)))))
 
 
