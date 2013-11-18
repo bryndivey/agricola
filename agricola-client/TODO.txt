@@ -1,0 +1,2 @@
+- proper animal target validator
+- proper animal sink action (place to slots)
