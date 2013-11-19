@@ -106,21 +106,51 @@
 (defn get-starting-player [game]
   (first (filter :starting-player (vals (:players game)))))
 
-(defn next-move [game]
-  (let [starting-player (get-starting-player game)
+(defn round-moves [game]
+  (filter #(= (:round game) (:round %)) (:moves game)))
+
+(defn remaining-moves [game]
+  (let [r-moves (round-moves game)
+        moves (frequencies (map :player r-moves))
+        family-sizes (into {} (map (juxt :id :family) (vals (:players game))))]
+    (merge-with - family-sizes moves)))
+
+(defn round-done? [game]
+  (let [remaining (remaining-moves game)]
+    (not (some pos? (vals remaining)))))
+
+
+
+(defn next-player-harvest [game]
+  (let [harvest-moves (filter #(= :harvest (:type %)) (round-moves game))
+        starting-player (get-starting-player game)
         players (rotate-while (comp not (:id starting-player)) (:player-order game))
-        
-        moves-by-player (into (into {} (map vector players (repeat 0))) (frequencies (map :player (:moves game))))
-        total-moves (into {} (map #(vector (:id %) (:family %)) (vals (:players game))))
-        remaining-moves (for [[k v] (merge-with - total-moves moves-by-player ) :when pos?] [k v])
-        ordered-by-moves (map first (reverse (sort-by second remaining-moves)))]
-    (println players)
-    (println moves-by-player)
-    (println total-moves)
-    (println remaining-moves)
-    (println ordered-by-moves)
-    (first (filter (set remaining-moves) players)))
-)
+        played-harvest (set (map :player harvest-moves))
+        with-moves (filter (complement played-harvest) players)]
+    (if (empty? with-moves)
+      (throw (Exception. "Nothing to do! Must tick!"))
+      (first with-moves))))
+
+(defn next-player-game [game]
+  (let [r-moves (round-moves game)
+        starting-player (get-starting-player game)
+        players (rotate-while (comp not (:id starting-player)) (:player-order game))
+        remaining (remaining-moves game)]
+    (if (empty? r-moves)
+      (first players)
+      (let [last-player (:player (last (:moves game)))
+            rotated (rotate 1 (rotate-while (partial not= last-player) players))
+            with-moves (filter #(pos? (remaining %)) rotated)]
+        (first with-moves)))))
+
+(defn next-move [game]
+  (let [done (round-done? game)
+        harvest-round ((set (:round-lengths game)) (:round game))]
+    (cond
+     (and done harvest-round) {:type :harvest :player (next-player-harvest game)}
+     (not done) {:type :game :player (next-player-game game)}
+     :else (throw (Exception. "Nothing to do! Must tick!")))))
+
 
 ;; space validators
 
