@@ -197,7 +197,6 @@
   "Can the player place these animals"
   true
   (let [t-num (>= (:supply slot) (count (:targets args)))]
-    (println "TEST NUM" (:supply slot) (count (:targets args)))
     (and t-num)))
 
 (defn make-animal-sink-action [name animal number]

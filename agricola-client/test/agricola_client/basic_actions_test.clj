@@ -8,7 +8,7 @@
 (def slots-v [:day-labourer :build-rooms :three-wood :plow :build-stables :starting-player :one-sheep :sow :fences])
 
 (defn setup-game-for-test []
-  (create-with-slots slots-v))
+  (game-tick (create-with-slots slots-v)))
 
 (deftest t-three-wood-tick
   (let [g1 (setup-game-for-test)
