@@ -37,7 +37,7 @@
 (defn defaction [name & {:keys [validate-fns perform-fn create-fn tick-fn partial] :as obj}]
   (let [kwname (keyword name)]
     (assert perform-fn "Must define a perform-fn")
-    (swap! action-fn-map assoc kwname {:create (if create-fn create-fn (make-create-fn kwname))
+    (swap! action-fn-map assoc kwname {:create (or create-fn (make-create-fn kwname))
                                        :validate validate-fns
                                        :perform perform-fn
                                        :tick tick-fn
@@ -321,7 +321,7 @@
 
   :perform-fn (fn [_ player _ args]
                 (let [cost ( resources-for-stables player args)
-                      player (reduce #(add-stable %1 %2) player (map :space (:targets args)))]
+                      player (reduce add-stable player (map :space (:targets args)))]
                   {:player (dec-resources player cost)})))
 
 (deforaction :build-rooms-or-stables
@@ -355,7 +355,7 @@
 
   :perform-fn (fn [_ player _ args]
                 (let [cost (resources-for-stable player args)
-                      player (reduce #(add-stable %1 %2) player (map :space (:targets args)))]
+                      player (reduce add-stable player (map :space (:targets args)))]
                   {:player (dec-resources player cost)})))
 
 

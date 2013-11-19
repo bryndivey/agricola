@@ -55,7 +55,7 @@
   ([player r-map]
      (let [r2 (merge-with - (:resources player) (select-keys r-map (keys (:resources player))))]
        r2
-       (not (some #(< % 0) (vals r2))))))
+       (not-any? neg? (vals r2)))))
 
 (defn- munge-resources
   "Modify the player's resources dict with an op, only modifying resources that exist in the player's map"
@@ -90,12 +90,36 @@
 (defn move-count [game player]
   (get (frequencies (map :performed (vals (:slots game)))) player 0))
 
+(defn rotate-while 
+  "https://groups.google.com/forum/#!topic/clojure/SjmevTjZPcQ
+   Rotates a collection left while (pred item) is true. Will return a unrotated 
+   sequence if (pred item) is never true. Executes in O(n) time." 
+  [pred coll] 
+  (let [head (drop-while pred coll)] 
+    (take (count coll) (concat head coll)))) 
+
+(defn- rotate [n s] 
+  (let [[front back] (split-at (mod n (count s)) s)] 
+    (concat back front))) 
+
+
+(defn get-starting-player [game]
+  (first (filter :starting-player (vals (:players game)))))
 
 (defn next-move [game]
-  (let [moves-by-player (frequencies (map :player (:moves game)))
-        total-moves (map :family (vals (:players game)))]
+  (let [starting-player (get-starting-player game)
+        players (rotate-while (comp not (:id starting-player)) (:player-order game))
+        
+        moves-by-player (into (into {} (map vector players (repeat 0))) (frequencies (map :player (:moves game))))
+        total-moves (into {} (map #(vector (:id %) (:family %)) (vals (:players game))))
+        remaining-moves (for [[k v] (merge-with - total-moves moves-by-player ) :when pos?] [k v])
+        ordered-by-moves (map first (reverse (sort-by second remaining-moves)))]
+    (println players)
     (println moves-by-player)
-    (println total-moves))
+    (println total-moves)
+    (println remaining-moves)
+    (println ordered-by-moves)
+    (first (filter (set remaining-moves) players)))
 )
 
 ;; space validators
