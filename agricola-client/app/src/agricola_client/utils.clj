@@ -119,7 +119,8 @@
   (let [remaining (remaining-moves game)]
     (not (some pos? (vals remaining)))))
 
-
+(defn harvest-round? [game]
+  ((set (:round-lengths game)) (:round game)))
 
 (defn next-player-harvest [game]
   (let [harvest-moves (filter #(= :harvest (:type %)) (round-moves game))
@@ -145,7 +146,7 @@
 
 (defn next-move [game]
   (let [done (round-done? game)
-        harvest-round ((set (:round-lengths game)) (:round game))]
+        harvest-round (harvest-round? game)]
     (cond
      (and done harvest-round) {:type :harvest :player (next-player-harvest game)}
      (not done) {:type :game :player (next-player-game game)}
