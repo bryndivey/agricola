@@ -120,6 +120,7 @@
                            (assoc-in [:slots (:slot move)] (:slot state))
                            (assoc-in [:players (:player move)] (:player state)))))]
       (-> new-game
+          (update-in [:moves] (assoc move :round (:round game)))
           (assoc-in [:slots (:slot move) :performed] (:player move))
           (update-in [:players (:player move) :moves] conj move)))))
 

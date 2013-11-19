@@ -91,6 +91,13 @@
   (get (frequencies (map :performed (vals (:slots game)))) player 0))
 
 
+(defn next-move [game]
+  (let [moves-by-player (frequencies (map :player (:moves game)))
+        total-moves (map :family (vals (:players game)))]
+    (println moves-by-player)
+    (println total-moves))
+)
+
 ;; space validators
 
 (defn hut? [space]
@@ -113,6 +120,10 @@
     (stable? space)
     (field? space))))
 
+(defn last-move [game]
+  (last (:moves game)))
+
+
 
 (defn g-s [game move] ((:slots game) (:slot move)))
 (defn g-p [game move] ((:players game) (:player move)))
@@ -121,5 +132,7 @@
   "Has this slot been made available according to the number of rounds played"
   (boolean (some #{slot} (take (+ (:num-base-actions game) (:round game)) (:slot-order game)))))
 
+(defn harvest-time [game]
+  (#{(:round-lengths game)} (:round game)))
 
 
