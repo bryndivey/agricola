@@ -2,7 +2,7 @@
     (:require [agricola-client.create :refer [add-player
                                               create-with-slots
                                               add-round-slots]]
-              [agricola-client.game :refer [game-tick]]))
+              [agricola-client.game :refer [game-tick next-move]]))
 
 (def init-slots [;; composites
                  :build-rooms
@@ -25,7 +25,8 @@
                       :fences
                       :major-or-minor-improvement])
 (defn create []
-  (-> (create-with-slots init-slots)
-      (add-player "Mark")
-      (add-round-slots round-one-slots)
-      game-tick))
+  (let [g (-> (create-with-slots init-slots)
+              (add-player "Mark")
+              (add-round-slots round-one-slots)
+              game-tick)]
+    (assoc g :next-move (next-move g))))

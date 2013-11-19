@@ -98,7 +98,7 @@
   (let [head (drop-while pred coll)] 
     (take (count coll) (concat head coll)))) 
 
-(defn- rotate [n s] 
+(defn rotate [n s] 
   (let [[front back] (split-at (mod n (count s)) s)] 
     (concat back front))) 
 
@@ -115,42 +115,7 @@
         family-sizes (into {} (map (juxt :id :family) (vals (:players game))))]
     (merge-with - family-sizes moves)))
 
-(defn round-done? [game]
-  (let [remaining (remaining-moves game)]
-    (not (some pos? (vals remaining)))))
 
-(defn harvest-round? [game]
-  ((set (:round-lengths game)) (:round game)))
-
-(defn next-player-harvest [game]
-  (let [harvest-moves (filter #(= :harvest (:type %)) (round-moves game))
-        starting-player (get-starting-player game)
-        players (rotate-while (comp not (:id starting-player)) (:player-order game))
-        played-harvest (set (map :player harvest-moves))
-        with-moves (filter (complement played-harvest) players)]
-    (if (empty? with-moves)
-      (throw (Exception. "Nothing to do! Must tick!"))
-      (first with-moves))))
-
-(defn next-player-game [game]
-  (let [r-moves (round-moves game)
-        starting-player (get-starting-player game)
-        players (rotate-while (comp not (:id starting-player)) (:player-order game))
-        remaining (remaining-moves game)]
-    (if (empty? r-moves)
-      (first players)
-      (let [last-player (:player (last (:moves game)))
-            rotated (rotate 1 (rotate-while (partial not= last-player) players))
-            with-moves (filter #(pos? (remaining %)) rotated)]
-        (first with-moves)))))
-
-(defn next-move [game]
-  (let [done (round-done? game)
-        harvest-round (harvest-round? game)]
-    (cond
-     (and done harvest-round) {:type :harvest :player (next-player-harvest game)}
-     (not done) {:type :game :player (next-player-game game)}
-     :else (throw (Exception. "Nothing to do! Must tick!")))))
 
 
 ;; space validators

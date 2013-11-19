@@ -1,8 +1,8 @@
-(ns agricola-client.utils-test
+(ns agricola-client.game-test
   (:require [clojure.test :refer :all]
+            [agricola-client.game :refer [next-move round-done?]]
             [agricola-client.games.family :refer [create]]
-            [agricola-client.create :refer [add-player]]
-            [agricola-client.utils :refer :all]))
+            [agricola-client.create :refer [add-player]]))
 
 
 (defn setup-game-for-test []
@@ -25,14 +25,13 @@
     (is (= (next-move g1) {:player :mark :type :game}))
     (is (= (next-move g2) {:player :mark :type :game}))
     (is (= (next-move g3) {:player :mark :type :game}))
-    (is (thrown-with-msg? Exception #"Nothing to do! Must tick!" (next-move (assoc-in g4 [:round-lengths] [4]))))
+    (is (= {:type :tick} (next-move (assoc-in g4 [:round-lengths] [4]))))
     (is (= false (round-done? g3)))
     (is (= true (round-done? g4)))
     (is (= (next-move g4) {:player :bryn :type :harvest}))
     (is (= {:player :mark :type :harvest} (next-move (update-in g4 [:moves] conj {:player :bryn :round r :type :harvest}))))
-    (is (thrown-with-msg? Exception #"Nothing to do! Must tick!"
-                          (next-move (-> g4
-                                         (update-in [:moves] conj {:player :bryn :round r :type :harvest})
-                                         (update-in [:moves] conj {:player :mark :round r :type :harvest})))))
+    (is (= {:type :tick} (next-move (-> g4
+                                        (update-in [:moves] conj {:player :bryn :round r :type :harvest})
+                                        (update-in [:moves] conj {:player :mark :round r :type :harvest})))))
     (is (= (next-move g5) {:player :bryn :type :game}))
     ))

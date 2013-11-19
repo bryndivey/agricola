@@ -70,6 +70,9 @@
              
              [:game :game-id]
              [:game :slots :*]
+             [:game :next-move]
+             [:game :round]
+             [:game :moves]
 
              [:game :players :* :name]
              [:game :players :* :resources]

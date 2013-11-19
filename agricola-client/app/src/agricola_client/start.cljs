@@ -6,7 +6,7 @@
             [io.pedestal.app.messages :as msg]
             [agricola-client.behavior :as behavior]
             [agricola-client.rendering :as rendering]
-            [agricola-client.create :as create]))
+            [agricola-client.games.family :as game]))
 
 ;; In this namespace, the application is built and started.
 
@@ -22,7 +22,7 @@
     (app/begin app)
     ;; Send a message to the application so that it does something.
     (p/put-message (:input app)
-                   {msg/type :swap msg/topic [:game] :value (create/create)})
+                   {msg/type :swap msg/topic [:game] :value (game/create)})
     ;; Returning the app and app-model from the main function allows
     ;; the tooling to add support for useful features like logging
     ;; and recording.
