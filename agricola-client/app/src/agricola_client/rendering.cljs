@@ -61,9 +61,11 @@
   (let [hut (and (:hut space) (str (:hut space) " hut"))
         stable (and (:stable space) "stable")
         field (and (:field space) "field")
-        fence-cls (for [[k v] (:fences space) :when v] (format "fence-%s" (name k)))]
-    (log/error "FENCES" fence-cls)
-    (templates/update-t renderer path {:number (str (last path)) :space (str hut stable field)})))
+        fence-classes (for [[k v] (:fences space) :when v] (format "fence-%s" (name k)))]
+    (log/error "FENCES" fence-classes)
+    (templates/update-t renderer path {:number (str (last path))
+                                       :space (str hut stable field)
+                                       :classes (clojure.string/join " " fence-classes)})))
 
 ;; The data structure below is used to map rendering data to functions
 ;; which handle rendering for that specific change. This function is
