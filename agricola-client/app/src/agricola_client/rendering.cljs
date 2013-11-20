@@ -57,11 +57,12 @@
         html (templates/add-template r p (:board-space templates))]
     (dom/append! board (html {:id id :number "9001" :space "None" }))))
 
-(defn update-player-space [renderer [_ path _ new-value] transmitter]
-  (let [hut (and (:hut new-value) (str (:hut new-value) " hut"))
-        stable (and (:stable new-value) "stable")
-        field (and (:field new-value) "field")]
-    (log/error "UPDATE" path :val new-value)
+(defn update-player-space [renderer [_ path _ space] transmitter]
+  (let [hut (and (:hut space) (str (:hut space) " hut"))
+        stable (and (:stable space) "stable")
+        field (and (:field space) "field")
+        fence-cls (for [[k v] (:fences space) :when v] (format "fence-%s" (name k)))]
+    (log/error "FENCES" fence-cls)
     (templates/update-t renderer path {:number (str (last path)) :space (str hut stable field)})))
 
 ;; The data structure below is used to map rendering data to functions
