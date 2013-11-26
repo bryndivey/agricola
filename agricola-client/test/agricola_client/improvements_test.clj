@@ -6,7 +6,11 @@
 (deftest t-bake-action
   (let [pfn (actions/get-action-fn :bake :perform)
         vfns (actions/get-action-fn :bake :validate)
-        imp {:min 1 :max 2 :bakes 3}
+        imp {:conversions {:bake {:resource :grain
+                                  :min 1
+                                  :max 2
+                                  :rate {:grain -1
+                                         :food 3}}}}
 
         p (pfn nil {:resources {:grain 1 :food 0}} imp {:targets [{:resource :grain}]})]
     

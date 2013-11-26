@@ -54,10 +54,15 @@
 (def v-grain-resource-targets (make-v-resource-targets [:grain]))
 
 
-(defn v-slot-or-improvement-limit [_ _ s-or-i args]
-  "Validate that #targets in args is within :min and :max on the slot or improvement"
-  (let [t (:targets args)]
-    (and (vector? t)
-         (>= (count t) (:min s-or-i))
-         (<= (count t) (:max s-or-i)))))
+(defn v-conversion-limit [action] 
+  "Validate that #targets in args is within :min and :max in the 'action' section of :conversions on the slot or improvement"
+  (fn [_ _ s-or-i args]
+    (assert (action (:conversions s-or-i)) "Slot or improvement has no entry for action")
+    (let [t (:targets args)
+          limits (action (:conversions s-or-i))]
+      (and (vector? t)
+           (and (not= nil (:min limits))
+                (>= (count t) (:min limits)))
+           (and (not= nil (:max limits))
+                (<= (count t) (:max limits)))))))
 

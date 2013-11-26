@@ -5,3 +5,7 @@
 -- let perform-move take a slot OR improvement
 -- let taking an improvement return an optional further next-action (bake AFTER taking an oven)
 -- an improvement move looks like an and/or action: {:improvement :stone-oven :targets [{:bake [{:resource :grain}]} {:cook [{:resource :vegetable} {:resource :sheep}]}]} (GETTING COMPLICATED) (also, animal targets need, uh, targets? do they? it's rules driven, so I can just optimize and pick any of the type of animal, right?)
+-- figure out the "Return Fireplace OR 4 clay" type costs for improvements
+- conversions on improvements
+-- evaluate max
+-- use just negative and positive conversions to figure out proper exchange
