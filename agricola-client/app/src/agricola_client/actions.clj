@@ -43,6 +43,14 @@
 
 ;; validation
 
+(defn validators-pass? [vfns game player slot args]
+  (let [do-validate (fn [vfn]
+                      (try
+                        (vfn game player slot args)
+                        (catch Exception e false)))]
+    (or (not vfns)
+        (every? true? (map do-validate vfns)))))
+
 (defn valid-move? [game move]
   ; should fail-out on first error but i don't know the codez for that
   (assert (every? #{:player :slot} (keys (select-keys move [:player :slot]))) "Must have :player and :slot on every move!")
@@ -51,16 +59,11 @@
         player (g-p game move)
         vfns (get-action-fn (:action slot) :validate)
         moves (move-count game (:id player))
-        do-validate (fn [vfn]
-                      (try
-                        (vfn game player slot (dissoc move :player :slot))
-                        (catch Exception e false)))
-
+        
         t-exposed (exposed-slot game (:slot move))
         t-performed (not (:performed slot))
         t-count (not (>= (move-count game (:id player)) (:family player)))
-        t-slot (or (not vfns)
-                   (every? true? (map do-validate vfns)))
+        t-slot (validators-pass? vfns game player slot (dissoc move :player :slot))
         t-all (and t-exposed t-performed t-count t-slot)]
     t-all))
 

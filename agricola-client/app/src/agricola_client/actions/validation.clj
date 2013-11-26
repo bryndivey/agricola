@@ -43,6 +43,21 @@
      (every? #(not (utils/field? %)) spaces)
      (every? #(nil? ((first %) (second %))) t))))
 
-(defn v-building-resource-targets [_ _ _ args]
-  (every? #(#{:wood :clay :reed :stone} (:resource %)) (:targets args)))
+
+
+(defn make-v-resource-targets [resources]
+  "Make a validator to ensure all :resource in targets is one of 'resources'"
+  (fn [_ _ _ args]
+    (every? #((set resources) (:resource %)) (:targets args))))
+
+(def v-building-resource-targets (make-v-resource-targets [:wood :clay :reed :stone]))
+(def v-grain-resource-targets (make-v-resource-targets [:grain]))
+
+
+(defn v-slot-or-improvement-limit [_ _ s-or-i args]
+  "Validate that #targets in args is within :min and :max on the slot or improvement"
+  (let [t (:targets args)]
+    (and (vector? t)
+         (>= (count t) (:min s-or-i))
+         (<= (count t) (:max s-or-i)))))
 

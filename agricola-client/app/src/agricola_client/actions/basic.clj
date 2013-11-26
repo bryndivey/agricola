@@ -39,6 +39,7 @@
     {vegetable n}))
 
 (defaction :sow
+  ;; targets are [{:resource :bla}]
   :validate-fns [(v-num-targets 1 16)
                  v-space-targets
                  v-empty-field-targets
@@ -168,14 +169,6 @@
                 {:player (inc-resources player {:food 1
                                                 (:resource (first (:targets args))) 1})})
   )
-
-
-
-;; improvements
-
-(defaction :major-or-minor-improvement
-  :perform-fn (fn [_ player _ _]
-                {:player player}))
 
 
 
