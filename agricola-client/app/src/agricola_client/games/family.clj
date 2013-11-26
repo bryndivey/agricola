@@ -1,5 +1,6 @@
 (ns ^:shared agricola-client.games.family
-    (:require [agricola-client.create :refer [add-player
+    (:require [agricola-client.actions.basic]
+              [agricola-client.create :refer [add-player
                                               create-with-slots
                                               add-round-slots]]
               [agricola-client.game :refer [game-tick next-move]]))

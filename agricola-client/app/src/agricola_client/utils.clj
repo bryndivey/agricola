@@ -156,3 +156,8 @@
   (#{(:round-lengths game)} (:round game)))
 
 
+;; target stuff
+
+(defn get-targets-spaces [player targets]
+  "Get the space maps referred to by the targets"
+  (map #(get-in player [:board %]) (map :space targets)))
